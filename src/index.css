@@ -5,6 +5,12 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+}
+
+/* Make all elements non-selectable */
+* {
+  user-select: none;
 }
 
 code {
