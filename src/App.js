@@ -84,42 +84,44 @@ function App() {
     const task = queue[0];
     
     if (task.type === 'high') {
-      // Load balancing logic for high priority tasks - uses dynamic queue list
+      // Load balancing logic for high priority tasks - uses sum-based load balancing
       setSubQueues(sq => {
-        // Find the high priority queue with the minimum number of tasks
+        // Find the high priority queue with the minimum sum of task values
         let minQueue = highPriorityQueues[0];
-        let minLength = sq[minQueue].length;
+        let minSum = sq[minQueue].reduce((sum, taskValue) => sum + taskValue, 0);
         
-        // Iterate through all high priority queues to find the one with fewest tasks
+        // Iterate through all high priority queues to find the one with lowest sum
         highPriorityQueues.forEach(name => {
-          if (sq[name].length < minLength) {
+          const queueSum = sq[name].reduce((sum, taskValue) => sum + taskValue, 0);
+          if (queueSum < minSum) {
             minQueue = name;
-            minLength = sq[name].length;
+            minSum = queueSum;
           }
         });
         
-        // Add the task to the high priority queue with the fewest tasks
+        // Add the task to the high priority queue with the lowest sum
         return {
           ...sq,
           [minQueue]: [...sq[minQueue], task.value]
         };
       });
     } else {
-      // Load balancing logic for normal priority tasks - uses dynamic queue list
+      // Load balancing logic for normal priority tasks - uses sum-based load balancing
       setSubQueues(sq => {
-        // Find the regular queue with the minimum number of tasks
+        // Find the regular queue with the minimum sum of task values
         let minQueue = regularPriorityQueues[0];
-        let minLength = sq[minQueue].length;
+        let minSum = sq[minQueue].reduce((sum, taskValue) => sum + taskValue, 0);
         
-        // Iterate through all regular queues to find the one with fewest tasks
+        // Iterate through all regular queues to find the one with lowest sum
         regularPriorityQueues.forEach(name => {
-          if (sq[name].length < minLength) {
+          const queueSum = sq[name].reduce((sum, taskValue) => sum + taskValue, 0);
+          if (queueSum < minSum) {
             minQueue = name;
-            minLength = sq[name].length;
+            minSum = queueSum;
           }
         });
         
-        // Add the task to the queue with the fewest tasks
+        // Add the task to the queue with the lowest sum
         return {
           ...sq,
           [minQueue]: [...sq[minQueue], task.value]
@@ -224,14 +226,15 @@ function App() {
         const newQueues = { ...prev };
         const remainingHighQueues = highPriorityQueues.slice(0, -1); // All except the one being removed
         
-        // Find the high priority queue with the fewest tasks for redistribution
+        // Find the high priority queue with the lowest sum for redistribution
         let targetQueue = remainingHighQueues[0];
-        let minTasks = newQueues[targetQueue].length;
+        let minSum = newQueues[targetQueue].reduce((sum, taskValue) => sum + taskValue, 0);
         
         remainingHighQueues.forEach(queueName => {
-          if (newQueues[queueName].length < minTasks) {
+          const queueSum = newQueues[queueName].reduce((sum, taskValue) => sum + taskValue, 0);
+          if (queueSum < minSum) {
             targetQueue = queueName;
-            minTasks = newQueues[queueName].length;
+            minSum = queueSum;
           }
         });
         
@@ -327,14 +330,15 @@ function App() {
         const newQueues = { ...prev };
         const remainingRegularQueues = regularPriorityQueues.slice(0, -1); // All except the one being removed
         
-        // Find the regular priority queue with the fewest tasks for redistribution
+        // Find the regular priority queue with the lowest sum for redistribution
         let targetQueue = remainingRegularQueues[0];
-        let minTasks = newQueues[targetQueue].length;
+        let minSum = newQueues[targetQueue].reduce((sum, taskValue) => sum + taskValue, 0);
         
         remainingRegularQueues.forEach(queueName => {
-          if (newQueues[queueName].length < minTasks) {
+          const queueSum = newQueues[queueName].reduce((sum, taskValue) => sum + taskValue, 0);
+          if (queueSum < minSum) {
             targetQueue = queueName;
-            minTasks = newQueues[queueName].length;
+            minSum = queueSum;
           }
         });
         
@@ -503,19 +507,20 @@ function App() {
       
       // If we have both idle and busy queues, redistribute
       if (idleQueues.length > 0 && busyQueues.length > 0) {
-        // Find the busiest queue (most tasks)
+        // Find the queue with the highest sum of task values
         let busiestQueue = busyQueues[0];
-        let maxTasks = subQueues[busiestQueue].length;
+        let maxSum = subQueues[busiestQueue].reduce((sum, taskValue) => sum + taskValue, 0);
         
         busyQueues.forEach(q => {
-          if (subQueues[q].length > maxTasks) {
+          const queueSum = subQueues[q].reduce((sum, taskValue) => sum + taskValue, 0);
+          if (queueSum > maxSum) {
             busiestQueue = q;
-            maxTasks = subQueues[q].length;
+            maxSum = queueSum;
           }
         });
         
-        // Only redistribute if the busiest queue has significantly more tasks than idle queues
-        if (maxTasks > 1) {
+        // Only redistribute if the busiest queue has tasks and significant workload
+        if (subQueues[busiestQueue].length > 1 && maxSum > 0) {
           const idleQueue = idleQueues[0];
           
           // Move the last task from busiest queue to idle queue
